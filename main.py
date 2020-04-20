@@ -5,7 +5,7 @@ import os
 from flask import Flask, request
 from data import db_session
 from data.users import User
-from images import get_size, upload_image
+from images import get_size, upload_image, get_images
 from geocoder import get_city_map_url
 
 app = Flask(__name__)
@@ -49,7 +49,7 @@ def handle_dialog(res, req):
     if req['session']['new']:
         session = db_session.create_session()
         res['response']['text'] = '''Привет! Назови свое имя!
-Я уже знаю вот кого:''' + ', '.join(user.name for user in session.query(User).all())
+Вот кого я уже знаю: ''' + ', '.join(user.name for user in session.query(User).all())
         # создаем словарь в который в будущем положим имя пользователя
         sessionStorage[user_id] = {
             'first_name': None
@@ -87,13 +87,11 @@ def handle_dialog(res, req):
     # то это говорит о том, что он уже говорит о городе,
     # что хочет увидеть.
     else:
-        # ищем город в сообщение от пользователя
+        # ищем город в сообщении от пользователя
         city = get_city(req)
-        # если этот город среди известных нам,
-        # то показываем его (выбираем одну из двух картинок случайно)
         try:
             assert city is not None
-            if city in cities:
+            if city in cities:  # удаляем город из кнопок-подсказок
                 cities.remove(city)
             city_url = get_city_map_url(city)
             result = upload_image(city_url)
@@ -135,9 +133,11 @@ def get_first_name(req):
 
 
 @app.route('/')
-def size():
+def test():
     # return str(get_size())
+    # return str(upload_image('https://c7.hotpng.com/preview/53/309/191/pikachu-pixel-art-pikachu.jpg'))
     # return upload_image('http://static-maps.yandex.ru/1.x/?ll=46.034158,51.533103&spn=0.005,0.005&l=map')['image']['id']
+    # return str(get_images())
     session = db_session.create_session()
     return ', '.join(user.name for user in session.query(User).all())
 
