@@ -82,12 +82,7 @@ def handle_dialog(res, req):
                           + first_name.title() \
                           + '. Я - Алиса. Какой город хочешь увидеть?'
             # получаем варианты buttons из ключей нашего словаря cities
-            res['response']['buttons'] = [
-                {
-                    'title': city.title(),
-                    'hide': True
-                } for city in cities
-            ]
+
     # если мы знакомы с пользователем и он нам что-то написал,
     # то это говорит о том, что он уже говорит о городе,
     # что хочет увидеть.
@@ -98,6 +93,8 @@ def handle_dialog(res, req):
         # то показываем его (выбираем одну из двух картинок случайно)
         try:
             assert city is not None
+            if city in cities:
+                cities.remove(city)
             city_url = get_city_map_url(city)
             result = upload_image(city_url)
             im_id = result['image']['id']
@@ -108,6 +105,12 @@ def handle_dialog(res, req):
             res['response']['text'] = f'Это {city}'
         except Exception as e:
             res['response']['text'] = 'Первый раз слышу об этом городе. Попробуй еще разок!'
+    res['response']['buttons'] = [
+        {
+            'title': city.title(),
+            'hide': True
+        } for city in cities
+    ]
 
 
 def get_city(req):
@@ -137,6 +140,7 @@ def size():
     # return upload_image('http://static-maps.yandex.ru/1.x/?ll=46.034158,51.533103&spn=0.005,0.005&l=map')['image']['id']
     session = db_session.create_session()
     return ', '.join(user.name for user in session.query(User).all())
+
 
 if __name__ == '__main__':
     db_session.global_init()
