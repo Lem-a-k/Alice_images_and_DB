@@ -3,7 +3,8 @@ import json
 import os
 
 from flask import Flask, request
-
+from data import db_session
+from data.users import User
 from images import get_size, upload_image
 from geocoder import get_city_map_url
 
@@ -46,11 +47,14 @@ def handle_dialog(res, req):
 
     # если пользователь новый, то просим его представиться.
     if req['session']['new']:
-        res['response']['text'] = 'Привет! Назови свое имя!'
+        session = db_session.create_session()
+        res['response']['text'] = '''Привет! Назови свое имя!
+Я уже знаю вот кого:''' + ', '.join(user.name for user in session.query(User).all())
         # создаем словарь в который в будущем положим имя пользователя
         sessionStorage[user_id] = {
             'first_name': None
         }
+        session.close()
         return
 
     # если пользователь не новый, то попадаем сюда.
@@ -66,6 +70,12 @@ def handle_dialog(res, req):
         # если нашли, то приветствуем пользователя.
         # И спрашиваем какой город он хочет увидеть.
         else:
+            user = User()
+            user.name = first_name
+            session = db_session.create_session()
+            session.add(user)
+            session.commit()
+            session.close()
             sessionStorage[user_id]['first_name'] = first_name
             res['response'][
                 'text'] = 'Приятно познакомиться, ' \
@@ -128,6 +138,7 @@ def size():
 
 
 if __name__ == '__main__':
+    db_session.global_init()
     if "PORT" in os.environ:
         app.run(host='0.0.0.0', port=os.environ["PORT"])
     else:
