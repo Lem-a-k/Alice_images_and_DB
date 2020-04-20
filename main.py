@@ -1,9 +1,11 @@
 import logging
 import json
-import random
 import os
 
 from flask import Flask, request
+
+from images import get_size, upload_image
+from geocoder import get_city_map_url
 
 app = Flask(__name__)
 
@@ -14,12 +16,9 @@ logging.basicConfig(level=logging.INFO)
 # которые мы записали в прошлом пункте.
 
 cities = {
-    'москва': ['1540737/daa6e420d33102bf6947',
-               '213044/7df73ae4cc715175059e'],
-    'нью-йорк': ['1652229/728d5c86707054d4745f',
-                 '1030494/aca7ed7acefde2606bdc'],
-    'париж': ["1652229/f77136c2364eb90a3ea8",
-              '3450494/aca7ed7acefde22341bdc']
+    'москва',
+    'нью-йорк',
+    'париж'
 }
 
 # создаем словарь, где для каждого пользователя
@@ -87,17 +86,18 @@ def handle_dialog(res, req):
         city = get_city(req)
         # если этот город среди известных нам,
         # то показываем его (выбираем одну из двух картинок случайно)
-        if city in cities:
+        try:
+            assert city is not None
+            city_url = get_city_map_url(city)
+            result = upload_image(city_url)
+            im_id = result['image']['id']
             res['response']['card'] = {}
             res['response']['card']['type'] = 'BigImage'
-            res['response']['card']['title'] = 'Этот город я знаю.'
-            res['response']['card']['image_id'] = random.choice(cities[city])
-            res['response']['text'] = 'Я угадал!'
-        # если не нашел, то отвечает пользователю
-        # 'Первый раз слышу об этом городе.'
-        else:
-            res['response']['text'] = \
-                'Первый раз слышу об этом городе. Попробуй еще разок!'
+            res['response']['card']['title'] = f'Это {city}'
+            res['response']['card']['image_id'] = im_id
+            res['response']['text'] = f'Это {city}'
+        except Exception as e:
+            res['response']['text'] = 'Первый раз слышу об этом городе. Попробуй еще разок!'
 
 
 def get_city(req):
@@ -119,6 +119,12 @@ def get_first_name(req):
             # то возвращаем ее значение.
             # Во всех остальных случаях возвращаем None.
             return entity['value'].get('first_name', None)
+
+
+@app.route('/')
+def size():
+    #return str(get_size())
+    return upload_image('http://static-maps.yandex.ru/1.x/?ll=46.034158,51.533103&spn=0.005,0.005&l=map')['image']['id']
 
 
 if __name__ == '__main__':
