@@ -133,9 +133,10 @@ def get_first_name(req):
 
 @app.route('/')
 def size():
-    #return str(get_size())
-    return upload_image('http://static-maps.yandex.ru/1.x/?ll=46.034158,51.533103&spn=0.005,0.005&l=map')['image']['id']
-
+    # return str(get_size())
+    # return upload_image('http://static-maps.yandex.ru/1.x/?ll=46.034158,51.533103&spn=0.005,0.005&l=map')['image']['id']
+    session = db_session.create_session()
+    return ', '.join(user.name for user in session.query(User).all())
 
 if __name__ == '__main__':
     db_session.global_init()
